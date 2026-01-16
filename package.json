@@ -1,0 +1,35 @@
+{
+  "name": "ColorCircle",
+  "author": "MakeAwesomeHappen",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "dependencies": {
+    "pebble-clay": "^1.0.4"
+  },
+  "pebble": {
+    "displayName": "ColorCircle",
+    "uuid": "be960a4a-3fff-4e31-8285-87432bb8e92a",
+    "enableMultiJS": true,
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "basalt",
+      "chalk",
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "capabilities": [
+      "configurable"
+    ],
+    "messageKeys": {
+      "KEY_INVERT": 0,
+      "KEY_COLOR": 1
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}
