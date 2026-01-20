@@ -12,6 +12,7 @@
 typedef struct {
   int hours;
   int minutes;
+  int seconds;
 } Time;
 
 /*************** GLOBALS ***************/
@@ -27,6 +28,10 @@ static int c_radius = 2;
 static bool s_animating = false;
 static bool active;
 static GColor ringColor;
+
+static int s_hour_length = 0;
+static int s_minute_length = 0;
+static int s_seconds_length = 0; // we already talked about this
 
 /*********** ANIMATION HANDLERS ***********/
 static void animation_started(Animation *anim, void *context) {
@@ -57,12 +62,14 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   s_last_time.hours = tick_time->tm_hour;
   s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
   s_last_time.minutes = tick_time->tm_min;
+  s_last_time.seconds = tick_time->tm_sec;
   layer_mark_dirty(s_canvas_layer);
 }
 
 static int hours_to_minutes(int hours) {
   return (int)((float)hours / 12.0f * 60.0f);
 }
+
 
 /************* DRAWING *************/
 static void update_proc(Layer *layer, GContext *ctx) {
@@ -84,16 +91,40 @@ static void update_proc(Layer *layer, GContext *ctx) {
   // Compute angles
   int32_t minute_angle = TRIG_MAX_ANGLE * draw_time.minutes / 60;
   int32_t hour_angle = TRIG_MAX_ANGLE * draw_time.hours / 12 + (minute_angle / TRIG_MAX_ANGLE) * (TRIG_MAX_ANGLE / 12);
+  int32_t second_angle = TRIG_MAX_ANGLE * draw_time.seconds / 60;
 
   // Compute hand endpoints
-  GPoint minute_hand = {
-    .x = (int16_t)(sin_lookup(minute_angle) * (s_radius - HAND_MARGIN + 24) / TRIG_MAX_RATIO) + s_center.x,
-    .y = (int16_t)(-cos_lookup(minute_angle) * (s_radius - HAND_MARGIN + 24) / TRIG_MAX_RATIO) + s_center.y
-  };
-  GPoint hour_hand = {
-    .x = (int16_t)(sin_lookup(hour_angle) * (s_radius - 2 * HAND_MARGIN + 6) / TRIG_MAX_RATIO) + s_center.x,
-    .y = (int16_t)(-cos_lookup(hour_angle) * (s_radius - 2 * HAND_MARGIN + 6) / TRIG_MAX_RATIO) + s_center.y
-  };
+  // GPoint minute_hand = {
+  //   .x = (int16_t)(sin_lookup(minute_angle) * (s_radius - HAND_MARGIN + 24) / TRIG_MAX_RATIO) + s_center.x,
+  //   .y = (int16_t)(-cos_lookup(minute_angle) * (s_radius - HAND_MARGIN + 24) / TRIG_MAX_RATIO) + s_center.y
+  // };
+  // GPoint hour_hand = {
+  //   .x = (int16_t)(sin_lookup(hour_angle) * (s_radius - 2 * HAND_MARGIN + 6) / TRIG_MAX_RATIO) + s_center.x,
+  //   .y = (int16_t)(-cos_lookup(hour_angle) * (s_radius - 2 * HAND_MARGIN + 6) / TRIG_MAX_RATIO) + s_center.y
+  // };
+  // GPoint second_hand = {
+  //   .x = (int16_t)(sin_lookup(second_angle) * (s_radius - HAND_MARGIN + 32) / TRIG_MAX_RATIO) + s_center.x,
+  //   .y = (int16_t)(-cos_lookup(second_angle) * (s_radius - HAND_MARGIN + 32) / TRIG_MAX_RATIO) + s_center.y
+  // };
+
+  // Hour hand
+GPoint hour_hand = {
+  .x = (int16_t)(sin_lookup(hour_angle) * s_hour_length / TRIG_MAX_RATIO) + s_center.x,
+  .y = (int16_t)(-cos_lookup(hour_angle) * s_hour_length / TRIG_MAX_RATIO) + s_center.y
+};
+
+// Minute hand
+GPoint minute_hand = {
+  .x = (int16_t)(sin_lookup(minute_angle) * s_minute_length / TRIG_MAX_RATIO) + s_center.x,
+  .y = (int16_t)(-cos_lookup(minute_angle) * s_minute_length / TRIG_MAX_RATIO) + s_center.y
+};
+
+// Second hand
+GPoint second_hand = {
+  .x = (int16_t)(sin_lookup(second_angle) * s_seconds_length / TRIG_MAX_RATIO) + s_center.x,
+  .y = (int16_t)(-cos_lookup(second_angle) * s_seconds_length / TRIG_MAX_RATIO) + s_center.y
+};
+
 
   // Draw hands
   graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -102,6 +133,11 @@ static void update_proc(Layer *layer, GContext *ctx) {
 
   graphics_context_set_stroke_width(ctx, 4);
   if (s_radius > HAND_MARGIN) graphics_draw_line(ctx, s_center, minute_hand);
+  
+  graphics_context_set_stroke_color(ctx, GColorRed);
+  graphics_context_set_stroke_width(ctx, 2);
+
+  if (s_radius > HAND_MARGIN) graphics_draw_line(ctx, s_center, second_hand);
 
   // Draw center circles
   graphics_context_set_fill_color(ctx, GColorWhite);
@@ -156,9 +192,24 @@ static void radius_update(Animation *anim, AnimationProgress dist_normalized) {
 }
 
 static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
-  //s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
   s_anim_time.hours = anim_percentage(dist_normalized, s_last_time.hours);
   s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
+  s_anim_time.seconds = anim_percentage(dist_normalized, s_last_time.seconds);
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void hour_length_update(Animation *anim, AnimationProgress dist_normalized) {
+  s_hour_length = anim_percentage(dist_normalized, s_radius - 2 * HAND_MARGIN + 6);
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void minute_length_update(Animation *anim, AnimationProgress dist_normalized) {
+  s_minute_length = anim_percentage(dist_normalized, s_radius - HAND_MARGIN + 24);
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void seconds_length_update(Animation *anim, AnimationProgress dist_normalized) {
+  s_seconds_length = anim_percentage(dist_normalized, s_radius - HAND_MARGIN + 32);
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -184,14 +235,35 @@ static void init() {
   struct tm *time_now = localtime(&t);
   tick_handler(time_now, MINUTE_UNIT);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  //tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 
   // Animate ring and hands
-  AnimationImplementation radius_impl = { .update = radius_update };
-  animate(ANIMATION_DURATION, ANIMATION_DELAY, &radius_impl, false);
+  // AnimationImplementation radius_impl = { .update = radius_update };
+  // animate(ANIMATION_DURATION, ANIMATION_DELAY, &radius_impl, false);
 
-  AnimationImplementation hands_impl = { .update = hands_update };
-  animate(2 * ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
+  // AnimationImplementation hands_impl = { .update = hands_update };
+  // animate(2 * ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
+
+  // Ring animation (already exists)
+AnimationImplementation radius_impl = { .update = radius_update };
+animate(ANIMATION_DURATION, ANIMATION_DELAY, &radius_impl, false);
+
+// Hour hand length
+AnimationImplementation hour_impl = { .update = hour_length_update };
+animate(ANIMATION_DURATION, ANIMATION_DELAY, &hour_impl, false);
+
+// Minute hand length
+AnimationImplementation minute_impl = { .update = minute_length_update };
+animate(ANIMATION_DURATION, ANIMATION_DELAY, &minute_impl, false);
+
+// Second hand length
+AnimationImplementation second_impl = { .update = seconds_length_update };
+animate(ANIMATION_DURATION, ANIMATION_DELAY, &second_impl, false);
+
+// Animate angles (hands rotation)
+AnimationImplementation hands_impl = { .update = hands_update };
+animate(2 * ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
 }
 
 static void deinit() {
