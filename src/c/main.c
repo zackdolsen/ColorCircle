@@ -26,7 +26,7 @@ static double u_radius = 3.5;
 static int c_radius = 2;
 static bool s_animating = false;
 static bool active;
-static GColor color;
+static GColor ringColor;
 
 /*********** ANIMATION HANDLERS ***********/
 static void animation_started(Animation *anim, void *context) {
@@ -73,7 +73,7 @@ static void update_proc(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   
   // Draw colored ring
-  graphics_context_set_stroke_color(ctx, color);
+  graphics_context_set_stroke_color(ctx, ringColor);
   graphics_context_set_stroke_width(ctx, 9);
   graphics_context_set_antialiased(ctx, true);
   graphics_draw_circle(ctx, s_center, s_radius);
@@ -140,7 +140,7 @@ static void window_unload(Window *window) {
 static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *tuple = dict_find(iter, KEY_COLOR);
   if (tuple) {
-    color = GColorFromHEX(tuple->value->int32);
+    ringColor = GColorFromHEX(tuple->value->int32);
     layer_mark_dirty(s_canvas_layer);
   }
 }
@@ -156,7 +156,8 @@ static void radius_update(Animation *anim, AnimationProgress dist_normalized) {
 }
 
 static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
-  s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
+  //s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
+  s_anim_time.hours = anim_percentage(dist_normalized, s_last_time.hours);
   s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
   layer_mark_dirty(s_canvas_layer);
 }
@@ -165,7 +166,7 @@ static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
 static void init() {
   srand(time(NULL));
 
-  color = GColorFolly;  // set default ring color
+  ringColor = GColorFromHEX(0x00FFAA);  // set default ring color
   active = persist_read_bool(KEY_INVERT);
 
   app_message_open(64, 0);
