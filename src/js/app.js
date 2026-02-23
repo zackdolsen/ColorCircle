@@ -1,10 +1,9 @@
-var Clay = require('pebble-clay');
-var clayConfig = require('./config');
+// var Clay = require('pebble-clay');
+// var clayConfig = require('./config');
 
+// var clay = new Clay(clayConfig);
+
+
+var Clay = require('@rebble/clay');
+var clayConfig = require('./config.json');
 var clay = new Clay(clayConfig);
-
-
-//Old Clay
-//var Clay = require('clay');
-//var clayConfig = require('config');
-//var clay = new Clay(clayConfig);

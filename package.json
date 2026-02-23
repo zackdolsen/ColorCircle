@@ -6,7 +6,7 @@
     "pebble-app"
   ],
   "dependencies": {
-    "pebble-clay": "^1.0.4"
+    "@rebble/clay": "^1.0.8"
   },
   "pebble": {
     "displayName": "ColorCircle",
@@ -14,9 +14,12 @@
     "enableMultiJS": true,
     "sdkVersion": "3",
     "targetPlatforms": [
+      "aplite",
       "basalt",
       "chalk",
-      "emery"
+      "diorite",
+      "emery",
+      "gabbro"
     ],
     "watchapp": {
       "watchface": true
