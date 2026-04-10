@@ -47,6 +47,9 @@ static int minute_hand_width = 4; //width of minute hand
 static int second_hand_width = 1; //width of second hand
 static int hour_hand_circle_radius = 2; //radius of circle at end of hour hand
 static int seconds_hand_circle_radius = 3; //radius of circle at end of second hand
+static int hour_hand_length = 42;
+static int minute_hand_length = 70;
+static int seconds_hand_length = 81;
 
 // Lengths of hands for animating. Start at 0 ad grow to final length
 static int s_hour_length = 0;
@@ -199,9 +202,14 @@ static void update_proc(Layer *layer, GContext *ctx) {
   }
   graphics_fill_circle(ctx, s_center, center_inner_circle_radius);
 
+  //center dot for the hour hand
+  // GPoint hour_circle = {
+  //   .x = (int16_t)(sin_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.x,
+  //   .y = (int16_t)(-cos_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.y
+  // };
   GPoint hour_circle = {
-    .x = (int16_t)(sin_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.x,
-    .y = (int16_t)(-cos_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.y
+    .x = (int16_t)(sin_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
+    .y = (int16_t)(-cos_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.y
   };
 
   if (color_circle_radius > 2 * HAND_MARGIN) {
@@ -209,7 +217,10 @@ static void update_proc(Layer *layer, GContext *ctx) {
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
   }
 
-  
+  // APP_LOG(APP_LOG_LEVEL_INFO, "s_hour_length = %d", s_hour_length);
+  // APP_LOG(APP_LOG_LEVEL_INFO, "s_minute_length = %d", s_minute_length);
+  // APP_LOG(APP_LOG_LEVEL_INFO, "s_seconds_length = %d", s_seconds_length);
+
 }
 
 /************* WINDOW HANDLERS *************/
@@ -266,6 +277,14 @@ static void set_scale(){
   seconds_hand_circle_radius = 3 * ui_scale; //radius of circle at end of second hand
   APP_LOG(APP_LOG_LEVEL_INFO, "seconds_hand_circle_radius = %d", seconds_hand_circle_radius);
 
+  hour_hand_length = 42 * ui_scale; //radius of circle at end of second hand
+  APP_LOG(APP_LOG_LEVEL_INFO, "hour_hand_length = %d", hour_hand_length);
+
+  minute_hand_length = 70 * ui_scale; //radius of circle at end of second hand
+  APP_LOG(APP_LOG_LEVEL_INFO, "minute_hand_length = %d", minute_hand_length);
+
+  seconds_hand_length = 81 * ui_scale; //radius of circle at end of second hand
+  APP_LOG(APP_LOG_LEVEL_INFO, "seconds_hand_length = %d", seconds_hand_length);
 
 }
 
@@ -288,19 +307,24 @@ static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
 }
 
 static void hour_length_update(Animation *anim, AnimationProgress dist_normalized) {
-  s_hour_length = anim_percentage(dist_normalized, color_circle_radius - 2 * HAND_MARGIN + 6);
+  // s_hour_length = anim_percentage(dist_normalized, color_circle_radius - 2 * HAND_MARGIN + 6);
+  s_hour_length = anim_percentage(dist_normalized, hour_hand_length);
+
   layer_mark_dirty(s_canvas_layer);
 }
 
 static void minute_length_update(Animation *anim, AnimationProgress dist_normalized) {
-  s_minute_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 24);
+  // s_minute_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 24);
+  s_minute_length = anim_percentage(dist_normalized, minute_hand_length);
   layer_mark_dirty(s_canvas_layer);
 }
 
 static void seconds_length_update(Animation *anim, AnimationProgress dist_normalized) {
-  s_seconds_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 35);
+  // s_seconds_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 35);
+  s_seconds_length = anim_percentage(dist_normalized, seconds_hand_length);
   layer_mark_dirty(s_canvas_layer);
 }
+
 
 /************* INIT / DEINIT *************/
 static void init() {
@@ -352,6 +376,7 @@ static void init() {
   // Second hand length
   AnimationImplementation second_impl = { .update = seconds_length_update };
   animate(ANIMATION_DURATION, ANIMATION_DELAY, &second_impl, false);
+
 
   // Animate angles (hands rotation)
   AnimationImplementation hands_impl = { .update = hands_update };
