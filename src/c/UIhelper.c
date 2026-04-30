@@ -4,6 +4,30 @@
 static ScreenType s_watch_type;
 static bool initialized = false;
 
+ClaySettings settings;
+
+// Initialize the default settings
+void clay_default_settings() {
+  settings.KEY_COLOR = GColorMediumSpringGreen;
+  settings.KEY_INVERT = false;
+  settings.KEY_SECONDS = true;
+  settings.KEY_DATE = true;
+}
+
+// Read settings from persistent storage
+void clay_load_settings() {
+  // Load the default settings
+  clay_default_settings();
+  // Read settings from persistent storage, if they exist
+  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+void clay_save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+  // Update the display based on new settings
+}
+
+
 void watch_type_init()
 {
     if (initialized)

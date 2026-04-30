@@ -1,13 +1,13 @@
-#include <pebble.h>
+#include "pebble.h"
 #include "main.h"
 
-#define KEY_INVERT 0
-#define KEY_COLOR 1
+// #define KEY_INVERT 0
+// #define KEY_COLOR 1
 #define UNIT_TESTING 1
 
 // variables to be added to clay
-#define KEY_SECONDS 1
-#define KEY_DATE 1
+// #define KEY_SECONDS 1
+// #define KEY_DATE 1
 
 #define COLORS PBL_IF_COLOR_ELSE(true, false)
 #define ROUND PBL_IF_ROUND_ELSE(true, false)
@@ -26,6 +26,8 @@ typedef struct
   int seconds;
   int day;
 } Time;
+
+ClaySettings settings;
 
 /*************** GLOBALS ***************/
 static Window *s_main_window;
@@ -121,7 +123,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   // Draw colored ring
-  graphics_context_set_stroke_color(ctx, ringColor);
+  graphics_context_set_stroke_color(ctx, settings.KEY_COLOR);
   graphics_context_set_stroke_width(ctx, color_circle_thickness);
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
@@ -136,7 +138,7 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   // APP_LOG(APP_LOG_LEVEL_INFO, "hour_angle: %d", hour_angle);
 
-  if (KEY_DATE)
+  if (settings.KEY_DATE)
   {
     // Prepare day string
     char day_str[4];
@@ -201,7 +203,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_fill_circle(ctx, s_center, center_outer_circle_radius);
 
   // draw second hand
-  if (KEY_SECONDS)
+  if (settings.KEY_SECONDS)
   {
     if COLORS
     {
@@ -228,7 +230,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   }
 
   // draw inner center circle
-  if (KEY_SECONDS)
+  if (settings.KEY_SECONDS)
   {
     graphics_context_set_fill_color(ctx, GColorRed);
   }
@@ -279,12 +281,33 @@ static void window_unload(Window *window)
 /************* APP MESSAGE HANDLER *************/
 static void in_received_handler(DictionaryIterator *iter, void *context)
 {
-  Tuple *tuple = dict_find(iter, KEY_COLOR);
-  if (tuple)
-  {
-    ringColor = GColorFromHEX(tuple->value->int32);
-    layer_mark_dirty(s_canvas_layer);
+  // Ring Color
+  Tuple *color_t = dict_find(iter, MESSAGE_KEY_KEY_COLOR);
+  if (color_t) {
+    settings.KEY_COLOR = GColorFromHEX(color_t->value->int32);
   }
+
+  // Second hand
+  Tuple *second_hand_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
+  if (second_hand_t) {
+    settings.KEY_SECONDS = second_hand_t->value->int32 == 1;
+  }
+  
+  // Date 
+  Tuple *date_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
+  if (date_t) {
+    settings.KEY_DATE = date_t->value->int32 == 1;
+  }
+  
+  // Invert colors
+  Tuple *invert_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
+  if (invert_t) {
+    settings.KEY_INVERT = invert_t->value->int32 == 1;
+  }
+  
+  clay_save_settings();
+  
+  layer_mark_dirty(s_canvas_layer);
 }
 
 /************* UI SCALING *************/
@@ -379,6 +402,7 @@ static void init()
   srand(time(NULL));
 
   watch_type_init();
+  clay_load_settings();
 
   // set up FINAL_RADIUS based on watch type
   FINAL_RADIUS = PBL_DISPLAY_HEIGHT * 56 / 168; // original ratio for basalt
@@ -402,8 +426,10 @@ static void init()
 
   set_scale();
 
-  ringColor = GColorFromHEX(0x00FFAA); // set default ring color
-  active = persist_read_bool(KEY_INVERT);
+//   ringColor = GColorFromHEX(0x00FFAA); // set default ring color
+//   active = persist_read_bool(KEY_INVERT);
+  
+  
 
   app_message_open(64, 0);
   app_message_register_inbox_received(in_received_handler);
@@ -446,7 +472,7 @@ static void deinit()
 {
   tick_timer_service_unsubscribe();
   window_destroy(s_main_window);
-  persist_write_bool(KEY_INVERT, active);
+//   persist_write_bool(KEY_INVERT, active);
   app_message_deregister_callbacks();
 }
 

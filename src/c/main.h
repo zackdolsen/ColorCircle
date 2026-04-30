@@ -1,11 +1,26 @@
 #pragma once
 
+#define SETTINGS_KEY 1
+
+typedef struct ClaySettings {
+  GColor KEY_COLOR;
+  bool KEY_INVERT;
+  bool KEY_DATE;
+  bool KEY_SECONDS;
+} ClaySettings;
+
+
+
 typedef enum {
   SCREEN_TYPE_OG_RECT,
   SCREEN_TYPE_OG_ROUND,
   SCREEN_TYPE_RECT_V2,
   SCREEN_TYPE_ROUND_V2
 } ScreenType;
+
+void clay_default_settings(); 
+void clay_load_settings();
+void clay_save_settings();
 
 ScreenType get_watch_type(void);
 void watch_type_init(void);

@@ -1,39 +1,42 @@
 {
-  "name": "ColorCircle",
-  "author": "zman441",
-  "version": "1.0.0",
-  "keywords": [
-    "pebble-app"
-  ],
-  "dependencies": {
-    "@rebble/clay": "^1.0.8"
-  },
-  "pebble": {
-    "displayName": "Color Circle",
-    "uuid": "be960a4a-3fff-4e31-8285-87432bb8e92a",
-    "enableMultiJS": true,
-    "sdkVersion": "3",
-    "targetPlatforms": [
-      "aplite",
-      "basalt",
-      "chalk",
-      "diorite",
-      "emery",
-      "flint",
-      "gabbro"
-    ],
-    "watchapp": {
-      "watchface": true
+    "author": "zman441",
+    "dependencies": {
+        "@rebble/clay": "^1.0.8"
     },
-    "capabilities": [
-      "configurable"
+    "keywords": [
+        "pebble-app"
     ],
-    "messageKeys": {
-      "KEY_INVERT": 0,
-      "KEY_COLOR": 1
+    "name": "colorcircle",
+    "pebble": {
+        "capabilities": [
+            "configurable"
+        ],
+        "displayName": "Color Circle",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "KEY_INVERT",
+            "KEY_COLOR",
+            "KEY_DATE",
+            "KEY_SECONDS"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery",
+            "gabbro",
+            "flint"
+        ],
+        "uuid": "be960a4a-3fff-4e31-8285-87432bb8e92a",
+        "watchapp": {
+            "watchface": true
+        }
     },
-    "resources": {
-      "media": []
-    }
-  }
+    "version": "1.0.0"
 }

@@ -5,7 +5,7 @@
 module.exports = [
   { 
     "type": "heading", 
-    "defaultValue": "Settings" 
+    "defaultValue": "Color Circle" 
   }, 
   { 
     "type": "text", 
@@ -21,9 +21,31 @@ module.exports = [
       {
         "type": "color",
         "messageKey": "KEY_COLOR",      // Matches your C code
-        "defaultValue": "Folly",        // Pebble color name
+        "defaultValue": "0x00FFAA",        // Pebble color name
         "label": "Circle Color",
-        "sunlight": true
+        "sunlight": false
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Watchface Settings"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_SECONDS",      // Matches your C code
+        "defaultValue": true,        // Pebble color name
+        "label": "Show seconds",
+        "description": "Turning on may lead to decreased battery life"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_DATE",      // Matches your C code
+        "defaultValue": true,        // Pebble color name
+        "label": "Show date"
       }
     ]
   },
