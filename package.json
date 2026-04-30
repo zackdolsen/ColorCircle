@@ -1,6 +1,6 @@
 {
   "name": "ColorCircle",
-  "author": "MakeAwesomeHappen",
+  "author": "zman441",
   "version": "1.0.0",
   "keywords": [
     "pebble-app"
@@ -9,7 +9,7 @@
     "@rebble/clay": "^1.0.8"
   },
   "pebble": {
-    "displayName": "ColorCircle",
+    "displayName": "Color Circle",
     "uuid": "be960a4a-3fff-4e31-8285-87432bb8e92a",
     "enableMultiJS": true,
     "sdkVersion": "3",
@@ -19,6 +19,7 @@
       "chalk",
       "diorite",
       "emery",
+      "flint",
       "gabbro"
     ],
     "watchapp": {
