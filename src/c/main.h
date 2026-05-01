@@ -3,7 +3,9 @@
 #define SETTINGS_KEY 1
 
 typedef struct ClaySettings {
-  GColor KEY_COLOR;
+  GColor KEY_SECOND_COLOR;
+  GColor KEY_BG_COLOR;
+  GColor KEY_RING_COLOR;
   bool KEY_INVERT;
   bool KEY_DATE;
   bool KEY_SECONDS;

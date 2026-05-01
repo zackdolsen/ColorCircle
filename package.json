@@ -15,9 +15,11 @@
         "enableMultiJS": true,
         "messageKeys": [
             "KEY_INVERT",
-            "KEY_COLOR",
+            "KEY_RING_COLOR",
             "KEY_DATE",
-            "KEY_SECONDS"
+            "KEY_SECONDS",
+            "KEY_SECOND_COLOR",
+            "KEY_BG_COLOR"
         ],
         "projectType": "native",
         "resources": {
@@ -38,5 +40,5 @@
             "watchface": true
         }
     },
-    "version": "1.0.0"
+    "version": "3.0.0"
 }

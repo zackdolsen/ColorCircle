@@ -20,9 +20,23 @@ module.exports = [
       },
       {
         "type": "color",
-        "messageKey": "KEY_COLOR",      // Matches your C code
+        "messageKey": "KEY_RING_COLOR",      // Matches your C code
         "defaultValue": "0x00FFAA",        // Pebble color name
-        "label": "Circle Color",
+        "label": "Ring Color",
+        "sunlight": false
+      },
+      {
+        "type": "color",
+        "messageKey": "KEY_BG_COLOR",      // Matches your C code
+        "defaultValue": "0x000000",        // Pebble color name
+        "label": "Background Color",
+        "sunlight": false
+      },
+      {
+        "type": "color",
+        "messageKey": "KEY_SECOND_COLOR",      // Matches your C code
+        "defaultValue": "0xFF0000",        // Pebble color name
+        "label": "Seconds Hand Color",
         "sunlight": false
       }
     ]
@@ -54,26 +68,3 @@ module.exports = [
     "defaultValue": "Save"
   }
 ];
-
-
-
-
-// module.exports = [
-//   {
-//     "type": "section",
-//     "items": [
-//       {
-//         "type": "color",
-//         "messageKey": "KEY_COLOR",
-//         "defaultValue": "0xFF0000",
-//         "label": "Circle Color"
-//       },
-//       {
-//         "type": "toggle",
-//         "messageKey": "KEY_INVERT",
-//         "defaultValue": false,
-//         "label": "Invert Colors"
-//       }
-//     ]
-//   }
-// ];

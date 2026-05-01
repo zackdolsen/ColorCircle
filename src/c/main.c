@@ -1,21 +1,13 @@
 #include "pebble.h"
 #include "main.h"
 
-// #define KEY_INVERT 0
-// #define KEY_COLOR 1
 #define UNIT_TESTING 1
-
-// variables to be added to clay
-// #define KEY_SECONDS 1
-// #define KEY_DATE 1
 
 #define COLORS PBL_IF_COLOR_ELSE(true, false)
 #define ROUND PBL_IF_ROUND_ELSE(true, false)
 #define ANTIALIASING true
 
-#define HAND_MARGIN 10
-
-#define ANIMATION_DURATION 700
+#define ANIMATION_DURATION 1000
 #define ANIMATION_DELAY 800
 #define WATCH_TYPE get_watch_type()
 
@@ -30,14 +22,12 @@ typedef struct
 ClaySettings settings;
 
 /*************** GLOBALS ***************/
+// drawing variables
 static Window *s_main_window;
 static Layer *s_canvas_layer;
-
 static GPoint s_center;
-static Time s_last_time, s_anim_time;
+static Time s_current_time;
 static bool s_animating = false;
-static bool active;
-static GColor ringColor;
 static float ui_scale;
 static GFont s_gfont_date;
 
@@ -61,6 +51,7 @@ static int date_circle_radius = 20;
 static int s_hour_length = 0;
 static int s_minute_length = 0;
 static int s_seconds_length = 0;
+static float s_anim_progress = 0.0f; // 0.0 to 1.0 to show animation percentage
 
 // date variables
 static int s_date_circle_radius = 0; // used for animating circle
@@ -90,64 +81,68 @@ static void animate(int duration, int delay, AnimationImplementation *impl, bool
   {
     animation_set_handlers(anim, (AnimationHandlers){.started = animation_started, .stopped = animation_stopped}, NULL);
   }
+  
   animation_schedule(anim);
 }
 
 /************* TIME & HANDS *************/
 static void tick_handler(struct tm *tick_time, TimeUnits changed)
 {
-  s_last_time.hours = tick_time->tm_hour;
-  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
-  s_last_time.minutes = tick_time->tm_min;
-  s_last_time.seconds = tick_time->tm_sec;
-  s_last_time.day = tick_time->tm_mday;
+  s_current_time.hours = tick_time->tm_hour;
+  s_current_time.hours -= (s_current_time.hours > 12) ? 12 : 0;
+  s_current_time.minutes = tick_time->tm_min;
+  s_current_time.seconds = tick_time->tm_sec;
+  s_current_time.day = tick_time->tm_mday;
   layer_mark_dirty(s_canvas_layer);
-}
-
-static int hours_to_minutes(int hours)
-{
-  return (int)((float)hours / 12.0f * 60.0f);
 }
 
 /************* DRAWING *************/
 static void update_proc(Layer *layer, GContext *ctx)
 {
-  GRect bounds = layer_get_bounds(layer);
+  // GRect bounds = layer_get_bounds(layer);
+  GRect bounds = layer_get_unobstructed_bounds(layer);
+  s_center = grect_center_point(&bounds);
+  
+  
 
   // Black background
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  if (UNIT_TESTING && ROUND)
-  {
-    graphics_context_set_fill_color(ctx, GColorDarkGray);
-  }
+  graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR);
+  // if (UNIT_TESTING && ROUND)
+  // {
+  //   graphics_context_set_fill_color(ctx, GColorDarkGray);
+  // }
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   // Draw colored ring
-  graphics_context_set_stroke_color(ctx, settings.KEY_COLOR);
+  graphics_context_set_stroke_color(ctx, settings.KEY_RING_COLOR);
   graphics_context_set_stroke_width(ctx, color_circle_thickness);
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
 
-  // Determine current time (or animation)
-  Time draw_time = s_animating ? s_anim_time : s_last_time;
-
   // Compute angles
-  int32_t minute_angle = TRIG_MAX_ANGLE * draw_time.minutes / 60;
-  int32_t hour_angle = TRIG_MAX_ANGLE * (draw_time.hours * 60 + draw_time.minutes) / (12 * 60);
-  int32_t second_angle = TRIG_MAX_ANGLE * draw_time.seconds / 60;
+  float anim_hours = s_animating ? s_anim_progress * s_current_time.hours : s_current_time.hours;
+  float anim_minutes = s_animating ? s_anim_progress * s_current_time.minutes : s_current_time.minutes;
+  float anim_seconds = s_animating ? s_anim_progress * s_current_time.seconds : s_current_time.seconds;
 
-  // APP_LOG(APP_LOG_LEVEL_INFO, "hour_angle: %d", hour_angle);
+  // Compute angles from individual float values (no wraparound)
+  int32_t minute_angle = (int32_t)(TRIG_MAX_ANGLE * anim_minutes / 60.0f);
+  int32_t hour_angle = (int32_t)(TRIG_MAX_ANGLE * (anim_hours * 60.0f + anim_minutes) / 720.0f); // 12*60
+  int32_t second_angle = (int32_t)(TRIG_MAX_ANGLE * anim_seconds / 60.0f);
+
+  int32_t real_time_hour_angle = TRIG_MAX_ANGLE * (s_current_time.hours * 60 + s_current_time.minutes) / (12 * 60);
+
+  // APP_LOG(APP_LOG_LEVEL_INFO, "real_time_hour_angle: %d", real_time_hour_angle);
 
   if (settings.KEY_DATE)
   {
     // Prepare day string
     char day_str[4];
-    snprintf(day_str, sizeof(day_str), "%d", s_last_time.day);
+    snprintf(day_str, sizeof(day_str), "%d", s_current_time.day);
 
     // Position inside the circle, on the right, relative to current ring radius
     int16_t x_offset = (FINAL_RADIUS + color_circle_thickness / 2) / 2; // halfway to the edge of the ring;
 
-    if (s_last_time.hours <= 4 && s_last_time.hours >= 2)
+    if (real_time_hour_angle >= 8000 && real_time_hour_angle <= 22000)
     {
       x_offset = -1 * x_offset;
     }
@@ -156,12 +151,19 @@ static void update_proc(Layer *layer, GContext *ctx)
 
     if (s_date_circle_radius > 1)
     {
-      graphics_context_set_stroke_width(ctx, color_circle_thickness/4);
+      graphics_context_set_stroke_width(ctx, color_circle_thickness / 4);
       graphics_draw_circle(ctx, day_pos, s_date_circle_radius);
     }
 
     // Draw the day
-    graphics_context_set_text_color(ctx, GColorWhite);
+    if (settings.KEY_BG_COLOR.argb == GColorWhite.argb)
+    {
+      graphics_context_set_text_color(ctx, GColorBlack);
+    }
+    else
+    {
+      graphics_context_set_text_color(ctx, GColorWhite);
+    }
 
     if (s_date_circle_radius >= s_date_text_height / 2 && s_date_circle_radius >= s_date_text_width / 2)
     { // only have text if circle can fit it
@@ -189,14 +191,13 @@ static void update_proc(Layer *layer, GContext *ctx)
       .y = (int16_t)(-cos_lookup(second_angle) * s_seconds_length / TRIG_MAX_RATIO) + s_center.y};
 
   // Draw hour and minute hands
+  
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, hour_hand_width);
-  if (color_circle_radius > 2 * HAND_MARGIN)
-    graphics_draw_line(ctx, s_center, hour_hand);
+  graphics_draw_line(ctx, s_center, hour_hand);
 
   graphics_context_set_stroke_width(ctx, minute_hand_width);
-  if (color_circle_radius > HAND_MARGIN)
-    graphics_draw_line(ctx, s_center, minute_hand);
+  graphics_draw_line(ctx, s_center, minute_hand);
 
   // Draw Outer center circle
   graphics_context_set_fill_color(ctx, GColorWhite);
@@ -207,7 +208,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   {
     if COLORS
     {
-      graphics_context_set_stroke_color(ctx, GColorRed);
+      graphics_context_set_stroke_color(ctx, settings.KEY_SECOND_COLOR);
     }
     else
     {
@@ -215,16 +216,15 @@ static void update_proc(Layer *layer, GContext *ctx)
     }
     graphics_context_set_stroke_width(ctx, second_hand_width);
 
-    if (color_circle_radius > HAND_MARGIN)
-      graphics_draw_line(ctx, s_center, second_hand);
+    graphics_draw_line(ctx, s_center, second_hand);
 
     GPoint second_circle = {
         .x = (int16_t)(sin_lookup(second_angle) * color_circle_radius / TRIG_MAX_RATIO) + s_center.x,
         .y = (int16_t)(-cos_lookup(second_angle) * color_circle_radius / TRIG_MAX_RATIO) + s_center.y};
 
-    if (color_circle_radius > 2 * HAND_MARGIN)
+    graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
+    if (color_circle_radius > 2 * center_outer_circle_radius)
     {
-      graphics_context_set_fill_color(ctx, GColorRed);
       graphics_fill_circle(ctx, second_circle, seconds_hand_circle_radius);
     }
   }
@@ -232,7 +232,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   // draw inner center circle
   if (settings.KEY_SECONDS)
   {
-    graphics_context_set_fill_color(ctx, GColorRed);
+    graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
   }
   else
   {
@@ -240,16 +240,11 @@ static void update_proc(Layer *layer, GContext *ctx)
   }
   graphics_fill_circle(ctx, s_center, center_inner_circle_radius);
 
-  // center dot for the hour hand
-  //  GPoint hour_circle = {
-  //    .x = (int16_t)(sin_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.x,
-  //    .y = (int16_t)(-cos_lookup(hour_angle) * (color_circle_radius - 2 * HAND_MARGIN + 4) / TRIG_MAX_RATIO) + s_center.y
-  //  };
   GPoint hour_circle = {
       .x = (int16_t)(sin_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
       .y = (int16_t)(-cos_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.y};
 
-  if (color_circle_radius > 2 * HAND_MARGIN)
+  if (color_circle_radius > 2 * center_outer_circle_radius)
   {
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
@@ -264,9 +259,12 @@ static void update_proc(Layer *layer, GContext *ctx)
 static void window_load(Window *window)
 {
   Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
+  // GRect bounds = layer_get_bounds(window_layer);
+  GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
-  s_center = grect_center_point(&bounds);
+  
+
+  // s_center = grect_center_point(&bounds);
 
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, update_proc);
@@ -282,31 +280,49 @@ static void window_unload(Window *window)
 static void in_received_handler(DictionaryIterator *iter, void *context)
 {
   // Ring Color
-  Tuple *color_t = dict_find(iter, MESSAGE_KEY_KEY_COLOR);
-  if (color_t) {
-    settings.KEY_COLOR = GColorFromHEX(color_t->value->int32);
+  Tuple *color_t = dict_find(iter, MESSAGE_KEY_KEY_RING_COLOR);
+  if (color_t)
+  {
+    settings.KEY_RING_COLOR = GColorFromHEX(color_t->value->int32);
+  }
+
+  // Background Color
+  Tuple *color_bg_t = dict_find(iter, MESSAGE_KEY_KEY_BG_COLOR);
+  if (color_bg_t)
+  {
+    settings.KEY_BG_COLOR = GColorFromHEX(color_bg_t->value->int32);
+  }
+
+  // Seconds Color
+  Tuple *color_s_t = dict_find(iter, MESSAGE_KEY_KEY_SECOND_COLOR);
+  if (color_s_t)
+  {
+    settings.KEY_SECOND_COLOR = GColorFromHEX(color_s_t->value->int32);
   }
 
   // Second hand
   Tuple *second_hand_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
-  if (second_hand_t) {
+  if (second_hand_t)
+  {
     settings.KEY_SECONDS = second_hand_t->value->int32 == 1;
   }
-  
-  // Date 
+
+  // Date
   Tuple *date_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
-  if (date_t) {
+  if (date_t)
+  {
     settings.KEY_DATE = date_t->value->int32 == 1;
   }
-  
+
   // Invert colors
   Tuple *invert_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
-  if (invert_t) {
+  if (invert_t)
+  {
     settings.KEY_INVERT = invert_t->value->int32 == 1;
   }
-  
+
   clay_save_settings();
-  
+
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -368,15 +384,12 @@ static void radius_update(Animation *anim, AnimationProgress dist_normalized)
 
 static void hands_update(Animation *anim, AnimationProgress dist_normalized)
 {
-  s_anim_time.hours = anim_percentage(dist_normalized, s_last_time.hours);
-  s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
-  s_anim_time.seconds = anim_percentage(dist_normalized, s_last_time.seconds);
+  s_anim_progress = (float)dist_normalized / ANIMATION_NORMALIZED_MAX;
   layer_mark_dirty(s_canvas_layer);
 }
 
 static void hour_length_update(Animation *anim, AnimationProgress dist_normalized)
 {
-  // s_hour_length = anim_percentage(dist_normalized, color_circle_radius - 2 * HAND_MARGIN + 6);
   s_hour_length = anim_percentage(dist_normalized, hour_hand_length);
 
   layer_mark_dirty(s_canvas_layer);
@@ -384,14 +397,12 @@ static void hour_length_update(Animation *anim, AnimationProgress dist_normalize
 
 static void minute_length_update(Animation *anim, AnimationProgress dist_normalized)
 {
-  // s_minute_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 24);
   s_minute_length = anim_percentage(dist_normalized, minute_hand_length);
   layer_mark_dirty(s_canvas_layer);
 }
 
 static void seconds_length_update(Animation *anim, AnimationProgress dist_normalized)
 {
-  // s_seconds_length = anim_percentage(dist_normalized, color_circle_radius - HAND_MARGIN + 35);
   s_seconds_length = anim_percentage(dist_normalized, seconds_hand_length);
   layer_mark_dirty(s_canvas_layer);
 }
@@ -412,11 +423,14 @@ static void init()
   ui_scale = (float)PBL_DISPLAY_HEIGHT / (float)168; // 168 is basalt height
   APP_LOG(APP_LOG_LEVEL_INFO, "UI Scale x1000 = %ld", (int32_t)(ui_scale * 1000));
 
-  //text size for screen size
-  if (WATCH_TYPE == SCREEN_TYPE_OG_RECT || WATCH_TYPE == SCREEN_TYPE_OG_ROUND){
+  // text size for screen size
+  if (WATCH_TYPE == SCREEN_TYPE_OG_RECT || WATCH_TYPE == SCREEN_TYPE_OG_ROUND)
+  {
     s_gfont_date = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
     s_text_offset = 3;
-  } else {
+  }
+  else
+  {
     s_gfont_date = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
     s_text_offset = 4;
   }
@@ -425,11 +439,6 @@ static void init()
   s_date_text_height = get_font_pixel_height(s_gfont_date, "29");
 
   set_scale();
-
-//   ringColor = GColorFromHEX(0x00FFAA); // set default ring color
-//   active = persist_read_bool(KEY_INVERT);
-  
-  
 
   app_message_open(64, 0);
   app_message_register_inbox_received(in_received_handler);
@@ -471,8 +480,8 @@ static void init()
 static void deinit()
 {
   tick_timer_service_unsubscribe();
+  // app_message_close(); 
   window_destroy(s_main_window);
-//   persist_write_bool(KEY_INVERT, active);
   app_message_deregister_callbacks();
 }
 

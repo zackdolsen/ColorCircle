@@ -8,10 +8,12 @@ ClaySettings settings;
 
 // Initialize the default settings
 void clay_default_settings() {
-  settings.KEY_COLOR = GColorMediumSpringGreen;
+  settings.KEY_RING_COLOR = GColorMediumSpringGreen;
   settings.KEY_INVERT = false;
   settings.KEY_SECONDS = true;
   settings.KEY_DATE = true;
+  settings.KEY_BG_COLOR = GColorBlack;
+  settings.KEY_SECOND_COLOR = GColorRed;
 }
 
 // Read settings from persistent storage
