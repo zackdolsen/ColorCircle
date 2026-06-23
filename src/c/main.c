@@ -1,11 +1,12 @@
 #include "pebble.h"
 #include "main.h"
 
-#define UNIT_TESTING 1
+#define UNIT_TESTING 0
 
 #define COLORS PBL_IF_COLOR_ELSE(true, false)
 #define ROUND PBL_IF_ROUND_ELSE(true, false)
 #define ANTIALIASING true
+#define INVERT true
 
 #define ANIMATION_DURATION 1000
 #define ANIMATION_DELAY 800
@@ -31,21 +32,21 @@ static bool s_animating = false;
 static float ui_scale;
 static GFont s_gfont_date;
 
-// Scaling variables for layout
+// Scaling variables for layout, see UIHelper.c for the default values
 static int FINAL_RADIUS;
-static int color_circle_radius = 0;        // becomes final radius through animation
-static int color_circle_thickness = 9;     // thickness of the colored ring
-static int center_outer_circle_radius = 7; // outer center circle radius
-static int center_inner_circle_radius = 3; // inner center circle radius
-static int hour_hand_width = 8;            // width of hour hand
-static int minute_hand_width = 4;          // width of minute hand
-static int second_hand_width = 1;          // width of second hand
-static int hour_hand_circle_radius = 2;    // radius of circle at end of hour hand
-static int seconds_hand_circle_radius = 3; // radius of circle at end of second hand
-static int hour_hand_length = 42;
-static int minute_hand_length = 70;
-static int seconds_hand_length = 81;
-static int date_circle_radius = 20;
+static int color_circle_radius;        // becomes final radius through animation
+static int color_circle_thickness;     // thickness of the colored ring
+static int center_outer_circle_radius; // outer center circle radius
+static int center_inner_circle_radius; // inner center circle radius
+static int hour_hand_width;            // width of hour hand
+static int minute_hand_width;          // width of minute hand
+static int second_hand_width;          // width of second hand
+static int hour_hand_circle_radius;    // radius of circle at end of hour hand
+static int seconds_hand_circle_radius; // radius of circle at end of second hand
+static int hour_hand_length;
+static int minute_hand_length;
+static int seconds_hand_length;
+static int date_circle_radius;
 
 // Lengths of hands for animating. Start at 0 ad grow to final length
 static int s_hour_length = 0;
@@ -81,7 +82,7 @@ static void animate(int duration, int delay, AnimationImplementation *impl, bool
   {
     animation_set_handlers(anim, (AnimationHandlers){.started = animation_started, .stopped = animation_stopped}, NULL);
   }
-  
+
   animation_schedule(anim);
 }
 
@@ -102,19 +103,33 @@ static void update_proc(Layer *layer, GContext *ctx)
   // GRect bounds = layer_get_bounds(layer);
   GRect bounds = layer_get_unobstructed_bounds(layer);
   s_center = grect_center_point(&bounds);
-  
-  
+
+  //default hand colors (overridden by white background)
+  GColor hand_gcolor = GColorWhite;
+  GColor hourdot_gcolor = GColorBlack;
+
+  // if background is white, make hands black for contrast and flip accent color
+  if (settings.KEY_BG_COLOR.argb == GColorWhite.argb)
+  {
+    hand_gcolor = GColorBlack;
+    hourdot_gcolor = GColorWhite;
+  }
 
   // Black background
   graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR);
-  // if (UNIT_TESTING && ROUND)
-  // {
-  //   graphics_context_set_fill_color(ctx, GColorDarkGray);
-  // }
+  if (UNIT_TESTING && ROUND)
+  {
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+  }
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   // Draw colored ring
-  graphics_context_set_stroke_color(ctx, settings.KEY_RING_COLOR);
+  // determined colors for ring based on color screen and settings
+  if(COLORS){
+    graphics_context_set_stroke_color(ctx, settings.KEY_RING_COLOR);
+  } else {
+    graphics_context_set_stroke_color(ctx, hand_gcolor);
+  }
   graphics_context_set_stroke_width(ctx, color_circle_thickness);
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
@@ -153,18 +168,12 @@ static void update_proc(Layer *layer, GContext *ctx)
     {
       graphics_context_set_stroke_width(ctx, color_circle_thickness / 4);
       graphics_draw_circle(ctx, day_pos, s_date_circle_radius);
+      // graphics_context_set_fill_color(ctx, settings.KEY_RING_COLOR);
+      // graphics_fill_circle(ctx, day_pos, s_date_circle_radius);
     }
 
     // Draw the day
-    if (settings.KEY_BG_COLOR.argb == GColorWhite.argb)
-    {
-      graphics_context_set_text_color(ctx, GColorBlack);
-    }
-    else
-    {
-      graphics_context_set_text_color(ctx, GColorWhite);
-    }
-
+    graphics_context_set_text_color(ctx, hand_gcolor);
     if (s_date_circle_radius >= s_date_text_height / 2 && s_date_circle_radius >= s_date_text_width / 2)
     { // only have text if circle can fit it
       graphics_draw_text(ctx, day_str, s_gfont_date,
@@ -191,8 +200,7 @@ static void update_proc(Layer *layer, GContext *ctx)
       .y = (int16_t)(-cos_lookup(second_angle) * s_seconds_length / TRIG_MAX_RATIO) + s_center.y};
 
   // Draw hour and minute hands
-  
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_color(ctx, hand_gcolor);
   graphics_context_set_stroke_width(ctx, hour_hand_width);
   graphics_draw_line(ctx, s_center, hour_hand);
 
@@ -200,29 +208,31 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_draw_line(ctx, s_center, minute_hand);
 
   // Draw Outer center circle
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, hand_gcolor);
   graphics_fill_circle(ctx, s_center, center_outer_circle_radius);
 
   // draw second hand
   if (settings.KEY_SECONDS)
   {
+    //determines colors for second hand and second hand circles based on color screen.
     if COLORS
     {
+      graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
       graphics_context_set_stroke_color(ctx, settings.KEY_SECOND_COLOR);
     }
     else
     {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
+      graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR);
+      graphics_context_set_stroke_color(ctx, hand_gcolor);
     }
-    graphics_context_set_stroke_width(ctx, second_hand_width);
 
+    graphics_context_set_stroke_width(ctx, second_hand_width);
     graphics_draw_line(ctx, s_center, second_hand);
 
     GPoint second_circle = {
         .x = (int16_t)(sin_lookup(second_angle) * color_circle_radius / TRIG_MAX_RATIO) + s_center.x,
         .y = (int16_t)(-cos_lookup(second_angle) * color_circle_radius / TRIG_MAX_RATIO) + s_center.y};
 
-    graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
     if (color_circle_radius > 2 * center_outer_circle_radius)
     {
       graphics_fill_circle(ctx, second_circle, seconds_hand_circle_radius);
@@ -230,13 +240,13 @@ static void update_proc(Layer *layer, GContext *ctx)
   }
 
   // draw inner center circle
-  if (settings.KEY_SECONDS)
+  if (settings.KEY_SECONDS && COLORS)
   {
     graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
   }
   else
   {
-    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR); //prev black
   }
   graphics_fill_circle(ctx, s_center, center_inner_circle_radius);
 
@@ -246,7 +256,7 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   if (color_circle_radius > 2 * center_outer_circle_radius)
   {
-    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_context_set_fill_color(ctx, hourdot_gcolor);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
   }
 
@@ -261,8 +271,6 @@ static void window_load(Window *window)
   Layer *window_layer = window_get_root_layer(window);
   // GRect bounds = layer_get_bounds(window_layer);
   GRect bounds = layer_get_unobstructed_bounds(window_layer);
-
-  
 
   // s_center = grect_center_point(&bounds);
 
@@ -301,7 +309,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
   }
 
   // Second hand
-  Tuple *second_hand_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
+  Tuple *second_hand_t = dict_find(iter, MESSAGE_KEY_KEY_SECONDS);
   if (second_hand_t)
   {
     settings.KEY_SECONDS = second_hand_t->value->int32 == 1;
@@ -313,14 +321,6 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
   {
     settings.KEY_DATE = date_t->value->int32 == 1;
   }
-
-  // Invert colors
-  Tuple *invert_t = dict_find(iter, MESSAGE_KEY_KEY_DATE);
-  if (invert_t)
-  {
-    settings.KEY_INVERT = invert_t->value->int32 == 1;
-  }
-
   clay_save_settings();
 
   layer_mark_dirty(s_canvas_layer);
@@ -329,40 +329,37 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
 /************* UI SCALING *************/
 static void set_scale()
 {
-  color_circle_thickness = 9 * ui_scale; // thickness of the colored ring
+  color_circle_thickness = BASE_SCALE.color_circle_thickness * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "color_circle_thickness = %d", color_circle_thickness);
 
-  center_outer_circle_radius = 7 * ui_scale; // outer center circle radius
+  center_outer_circle_radius = BASE_SCALE.center_outer_circle_radius * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "center_outer_circle_radius = %d", center_outer_circle_radius);
 
-  center_inner_circle_radius = 3 * ui_scale; // inner center circle radius
+  center_inner_circle_radius = BASE_SCALE.center_inner_circle_radius * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "center_inner_circle_radius = %d", center_inner_circle_radius);
 
-  hour_hand_width = 8 * ui_scale; // width of hour hand
-  // hour_hand_width = color_circle_thickness * 82 / 100 * ui_scale; //width of hour hand
+  hour_hand_width = BASE_SCALE.hour_hand_width * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "hour_hand_width = %d", hour_hand_width);
 
-  minute_hand_width = 4.7 * ui_scale; // width of minute hand
-  // minute_hand_width = color_circle_thickness * 64 / 100 * ui_scale; //width of minute hand
-  APP_LOG(APP_LOG_LEVEL_INFO, "minute_hand_width = %d", minute_hand_width);
+  minute_hand_width = BASE_SCALE.minute_hand_width * ui_scale;
+  APP_LOG(APP_LOG_LEVEL_INFO, "minute_hand_width = %d", (int)minute_hand_width);
 
-  second_hand_width = 1.7 * ui_scale; // width of second hand
-  // second_hand_width = color_circle_thickness * 14 / 100 * ui_scale; //width of second hand
-  APP_LOG(APP_LOG_LEVEL_INFO, "second_hand_width = %d", second_hand_width);
+  second_hand_width = BASE_SCALE.second_hand_width * ui_scale;
+  APP_LOG(APP_LOG_LEVEL_INFO, "second_hand_width = %d", (int)second_hand_width);
 
-  hour_hand_circle_radius = 2 * ui_scale; // radius of circle at end of hour hand
+  hour_hand_circle_radius = BASE_SCALE.hour_hand_circle_radius * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "hour_hand_circle_radius = %d", hour_hand_circle_radius);
 
-  seconds_hand_circle_radius = 3 * ui_scale; // radius of circle at end of second hand
+  seconds_hand_circle_radius = BASE_SCALE.seconds_hand_circle_radius * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "seconds_hand_circle_radius = %d", seconds_hand_circle_radius);
 
-  hour_hand_length = 42 * ui_scale; // radius of circle at end of second hand
+  hour_hand_length = BASE_SCALE.hour_hand_length * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "hour_hand_length = %d", hour_hand_length);
 
-  minute_hand_length = 70 * ui_scale; // radius of circle at end of second hand
+  minute_hand_length = BASE_SCALE.minute_hand_length * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "minute_hand_length = %d", minute_hand_length);
 
-  seconds_hand_length = 81 * ui_scale; // radius of circle at end of second hand
+  seconds_hand_length = BASE_SCALE.seconds_hand_length * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "seconds_hand_length = %d", seconds_hand_length);
 
   date_circle_radius = (s_date_text_width + 8) / 2;
@@ -480,7 +477,7 @@ static void init()
 static void deinit()
 {
   tick_timer_service_unsubscribe();
-  // app_message_close(); 
+  // app_message_close();
   window_destroy(s_main_window);
   app_message_deregister_callbacks();
 }

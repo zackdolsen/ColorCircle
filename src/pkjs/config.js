@@ -23,7 +23,9 @@ module.exports = [
         "messageKey": "KEY_RING_COLOR",      // Matches your C code
         "defaultValue": "0x00FFAA",        // Pebble color name
         "label": "Ring Color",
-        "sunlight": false
+        "sunlight": false,
+        "capabilities": ["COLOR"]
+
       },
       {
         "type": "color",
@@ -37,7 +39,8 @@ module.exports = [
         "messageKey": "KEY_SECOND_COLOR",      // Matches your C code
         "defaultValue": "0xFF0000",        // Pebble color name
         "label": "Seconds Hand Color",
-        "sunlight": false
+        "sunlight": false,
+        "capabilities": ["COLOR"]
       }
     ]
   },

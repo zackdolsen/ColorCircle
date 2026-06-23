@@ -23,7 +23,30 @@
         ],
         "projectType": "native",
         "resources": {
-            "media": []
+            "media": [
+                {
+                    "type": "png",
+                    "name": "MENU_ICON",
+                    "file": "images/MenuIcon.png",
+                    "menuIcon": true,
+                    "targetPlatforms": [
+                        "basalt",
+                        "chalk",
+                        "emery",
+                        "gabbro"
+                    ]
+                },
+                {
+                    "type": "png",
+                    "name": "MENU_ICON",
+                    "file": "images/MenuIconBW.png",
+                    "targetPlatforms": [
+                        "aplite",
+                        "diorite",
+                        "flint"
+                    ]
+                }
+            ]
         },
         "sdkVersion": "3",
         "targetPlatforms": [

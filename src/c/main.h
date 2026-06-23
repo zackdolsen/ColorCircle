@@ -6,12 +6,25 @@ typedef struct ClaySettings {
   GColor KEY_SECOND_COLOR;
   GColor KEY_BG_COLOR;
   GColor KEY_RING_COLOR;
-  bool KEY_INVERT;
   bool KEY_DATE;
   bool KEY_SECONDS;
 } ClaySettings;
 
+typedef struct {
+  int color_circle_thickness;
+  int center_outer_circle_radius;
+  int center_inner_circle_radius;
+  int hour_hand_width;
+  float minute_hand_width;
+  float second_hand_width;
+  int hour_hand_circle_radius;
+  int seconds_hand_circle_radius;
+  int hour_hand_length;
+  int minute_hand_length;
+  int seconds_hand_length;
+} BaseScaleValues;
 
+extern const BaseScaleValues BASE_SCALE;
 
 typedef enum {
   SCREEN_TYPE_OG_RECT,

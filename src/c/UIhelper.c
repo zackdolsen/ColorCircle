@@ -6,10 +6,23 @@ static bool initialized = false;
 
 ClaySettings settings;
 
+const BaseScaleValues BASE_SCALE = {
+  .color_circle_thickness = 9,
+  .center_outer_circle_radius = 7,
+  .center_inner_circle_radius = 3,
+  .hour_hand_width = 8,
+  .minute_hand_width = 4.7f,
+  .second_hand_width = 1.7f,
+  .hour_hand_circle_radius = 2,
+  .seconds_hand_circle_radius = 3,
+  .hour_hand_length = 42,
+  .minute_hand_length = 70,
+  .seconds_hand_length = 81,
+};
+
 // Initialize the default settings
 void clay_default_settings() {
   settings.KEY_RING_COLOR = GColorMediumSpringGreen;
-  settings.KEY_INVERT = false;
   settings.KEY_SECONDS = true;
   settings.KEY_DATE = true;
   settings.KEY_BG_COLOR = GColorBlack;
