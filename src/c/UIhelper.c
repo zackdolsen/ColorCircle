@@ -18,6 +18,7 @@ const BaseScaleValues BASE_SCALE = {
   .hour_hand_length = 42,
   .minute_hand_length = 70,
   .seconds_hand_length = 81,
+  .hour_dots_radius = 2.3f,
 };
 
 // Initialize the default settings
@@ -28,7 +29,7 @@ void clay_default_settings() {
   settings.KEY_BG_COLOR = GColorBlack;
   settings.KEY_SECOND_COLOR = GColorRed;
   settings.KEY_RANDOM_COLOR = 1;
-  settings.KEY_HOUR_DOTS = false;
+  settings.KEY_HOUR_DOTS = true;
   settings.KEY_MIN_DOTS = false;
 }
 

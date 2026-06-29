@@ -50,6 +50,7 @@ static int hour_hand_length;
 static int minute_hand_length;
 static int seconds_hand_length;
 static int date_circle_radius;
+static int hour_dots_radius;
 
 // Lengths of hands for animating. Start at 0 ad grow to final length
 static int s_hour_length = 0;
@@ -61,7 +62,8 @@ static float s_anim_progress = 0.0f; // 0.0 to 1.0 to show animation percentage
 static int s_date_circle_radius = 0; // used for animating circle
 static int s_date_text_height;
 static int s_date_text_width;
-static int s_text_offset;
+static int s_y_text_offset; // offset for text to center it in the circle
+static int s_x_text_offset; // offset for text to center it in the circle
 
 //
 
@@ -219,6 +221,37 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
 
+
+  //Draw minute dots
+  if (settings.KEY_MIN_DOTS)
+  {
+    for (int i = 0; i < 60; i++)
+    {
+      int32_t minute_angle = (int32_t)(TRIG_MAX_ANGLE * i / 60.0f);
+      GPoint minute_dot = {
+          .x = (int16_t)(sin_lookup(minute_angle) * (color_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
+          .y = (int16_t)(-cos_lookup(minute_angle) * (color_circle_radius ) / TRIG_MAX_RATIO) + s_center.y};
+
+      graphics_context_set_fill_color(ctx, hourdot_gcolor);
+      graphics_fill_circle(ctx, minute_dot, 1);
+    }
+  }
+
+  //Draw hour dots
+  if (settings.KEY_HOUR_DOTS)
+  {
+    for (int i = 0; i < 12; i++)
+    {
+      int32_t hour_angle = (int32_t)(TRIG_MAX_ANGLE * i / 12.0f);
+      GPoint hour_dot = {
+          .x = (int16_t)(sin_lookup(hour_angle) * (color_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
+          .y = (int16_t)(-cos_lookup(hour_angle) * (color_circle_radius) / TRIG_MAX_RATIO) + s_center.y};
+
+      graphics_context_set_fill_color(ctx, hourdot_gcolor);
+      graphics_fill_circle(ctx, hour_dot, hour_dots_radius);
+    }
+  }
+
   // Compute angles
   float anim_hours = s_animating ? s_anim_progress * s_current_time.hours : s_current_time.hours;
   float anim_minutes = s_animating ? s_anim_progress * s_current_time.minutes : s_current_time.minutes;
@@ -262,7 +295,7 @@ static void update_proc(Layer *layer, GContext *ctx)
     if (s_date_circle_radius >= s_date_text_height / 2 && s_date_circle_radius >= s_date_text_width / 2)
     { // only have text if circle can fit it
       graphics_draw_text(ctx, day_str, s_gfont_date,
-                         GRect(day_pos.x - s_date_text_width / 2, day_pos.y - s_date_text_height / 2 - s_text_offset, s_date_text_width, s_date_text_height), // bounding box
+                         GRect(day_pos.x - s_date_text_width / 2 - s_x_text_offset, day_pos.y - s_date_text_height / 2 - s_y_text_offset, s_date_text_width, s_date_text_height), // bounding box
                          GTextOverflowModeWordWrap,
                          GTextAlignmentCenter,
                          NULL);
@@ -432,6 +465,20 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
     }
   }
 
+  // Hour Dots
+  Tuple *hour_dots_t = dict_find(iter, MESSAGE_KEY_KEY_HOUR_DOTS);
+  if (hour_dots_t)
+  {
+    settings.KEY_HOUR_DOTS = hour_dots_t->value->int32 == 1;
+  } 
+
+  // Minute Dots
+  Tuple *min_dots_t = dict_find(iter, MESSAGE_KEY_KEY_MIN_DOTS);
+  if (min_dots_t)
+  {
+    settings.KEY_MIN_DOTS = min_dots_t->value->int32 == 1;
+  }
+
   if (settings.KEY_RANDOM_COLOR == 2 || settings.KEY_RANDOM_COLOR == 3)
   {
     update_random_ring_color(true);
@@ -477,6 +524,9 @@ static void set_scale()
 
   seconds_hand_length = BASE_SCALE.seconds_hand_length * ui_scale;
   APP_LOG(APP_LOG_LEVEL_INFO, "seconds_hand_length = %d", seconds_hand_length);
+
+  hour_dots_radius = BASE_SCALE.hour_dots_radius * ui_scale;
+  APP_LOG(APP_LOG_LEVEL_INFO, "hour_dots_radius = %d", hour_dots_radius);
 
   date_circle_radius = (s_date_text_width + 8) / 2;
   APP_LOG(APP_LOG_LEVEL_INFO, "date_circle_radius = %d", date_circle_radius);
@@ -540,12 +590,14 @@ static void init()
   if (WATCH_TYPE == SCREEN_TYPE_OG_RECT || WATCH_TYPE == SCREEN_TYPE_OG_ROUND)
   {
     s_gfont_date = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-    s_text_offset = 3;
+    s_y_text_offset = 3;
+    s_x_text_offset = 0;
   }
   else
   {
     s_gfont_date = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-    s_text_offset = 4;
+    s_y_text_offset = 5;
+    s_x_text_offset = -1;
   }
 
   s_date_text_width = get_font_pixel_width(s_gfont_date, "30");
@@ -553,7 +605,7 @@ static void init()
 
   set_scale();
 
-  app_message_open(64, 0);
+  app_message_open(128, 0);
   app_message_register_inbox_received(in_received_handler);
 
   s_main_window = window_create();

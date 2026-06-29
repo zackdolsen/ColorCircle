@@ -25,6 +25,7 @@ typedef struct {
   int hour_hand_length;
   int minute_hand_length;
   int seconds_hand_length;
+  float hour_dots_radius;
 } BaseScaleValues;
 
 extern const BaseScaleValues BASE_SCALE;
