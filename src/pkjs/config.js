@@ -3,13 +3,13 @@
 /* eslint-disable quotes */
 
 module.exports = [
-  { 
-    "type": "heading", 
-    "defaultValue": "Color Circle" 
-  }, 
-  { 
-    "type": "text", 
-    "defaultValue": "These are the current settings" 
+  {
+    "type": "heading",
+    "defaultValue": "Color Circle Settings"
+  },
+  {
+    "type": "text",
+    "defaultValue": "These are the current settings for version 3.0"
   },
   {
     "type": "section",
@@ -41,6 +41,27 @@ module.exports = [
         "label": "Seconds Hand Color",
         "sunlight": false,
         "capabilities": ["COLOR"]
+      },
+      {
+        "type": "radiogroup",
+        "messageKey": "KEY_RANDOM_COLOR",
+        "label": "Random Ring Color",
+        "capabilities": ["COLOR"],
+        "defaultValue": "1",
+        "options": [
+          {
+            "label": "Off",
+            "value": "1"
+          },
+          {
+            "label": "Every Minute",
+            "value": "2"
+          },
+          {
+            "label": "Every Hour",
+            "value": "3"
+          }
+        ]
       }
     ]
   },
@@ -55,14 +76,26 @@ module.exports = [
         "type": "toggle",
         "messageKey": "KEY_SECONDS",      // Matches your C code
         "defaultValue": true,        // Pebble color name
-        "label": "Show seconds",
+        "label": "Show Seconds",
         "description": "Turning on may lead to decreased battery life"
       },
       {
         "type": "toggle",
         "messageKey": "KEY_DATE",      // Matches your C code
         "defaultValue": true,        // Pebble color name
-        "label": "Show date"
+        "label": "Show Date"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_HOUR_DOTS",
+        "defaultValue": false,
+        "label": "Show Hour Dots"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_MIN_DOTS",
+        "defaultValue": false,
+        "label": "Show Minute Dots"
       }
     ]
   },

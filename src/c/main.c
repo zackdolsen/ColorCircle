@@ -1,5 +1,6 @@
 #include "pebble.h"
 #include "main.h"
+#include <stdlib.h>
 
 #define UNIT_TESTING 0
 
@@ -31,6 +32,8 @@ static Time s_current_time;
 static bool s_animating = false;
 static float ui_scale;
 static GFont s_gfont_date;
+static int prev_hours = -1;
+static GColor ring_color = GColorMediumSpringGreen;
 
 // Scaling variables for layout, see UIHelper.c for the default values
 static int FINAL_RADIUS;
@@ -60,6 +63,8 @@ static int s_date_text_height;
 static int s_date_text_width;
 static int s_text_offset;
 
+//
+
 /*********** ANIMATION HANDLERS ***********/
 static void animation_started(Animation *anim, void *context)
 {
@@ -86,14 +91,91 @@ static void animate(int duration, int delay, AnimationImplementation *impl, bool
   animation_schedule(anim);
 }
 
+GColor randomGColor()
+{
+  GColor tcolor;
+  bool isValidColor = false;
+  do
+  {
+    tcolor = GColorFromRGB(
+        rand() % 256,
+        rand() % 256,
+        rand() % 256);
+
+    if (tcolor.argb != GColorBlack.argb && tcolor.argb != GColorWhite.argb && tcolor.argb != settings.KEY_BG_COLOR.argb && tcolor.argb != settings.KEY_SECOND_COLOR.argb)
+    {
+      isValidColor = true;
+    }
+    else
+    {
+      APP_LOG(APP_LOG_LEVEL_INFO, "Invalid color generated: %d", tcolor.argb);
+    }
+  } while (!isValidColor);
+
+  return tcolor;
+}
+
+void update_random_ring_color(bool force)
+{
+  if (settings.KEY_RANDOM_COLOR != 2 && settings.KEY_RANDOM_COLOR != 3)
+  {
+    return;
+  }
+
+  if (!force)
+  {
+    if (settings.KEY_RANDOM_COLOR == 2 && prev_hours == s_current_time.minutes)
+    {
+      return;
+    }
+
+    if (settings.KEY_RANDOM_COLOR == 3 && prev_hours == s_current_time.hours)
+    {
+      return;
+    }
+  }
+
+  ring_color = randomGColor();
+  settings.KEY_RING_COLOR = ring_color;
+  prev_hours = (settings.KEY_RANDOM_COLOR == 2) ? s_current_time.minutes : s_current_time.hours;
+  clay_save_settings();
+
+  if (s_canvas_layer != NULL)
+  {
+    layer_mark_dirty(s_canvas_layer);
+  }
+}
+
+void update_tick_subscription(void)
+{
+  tick_timer_service_unsubscribe();
+  tick_timer_service_subscribe(settings.KEY_SECONDS ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
+}
+
 /************* TIME & HANDS *************/
-static void tick_handler(struct tm *tick_time, TimeUnits changed)
+void tick_handler(struct tm *tick_time, TimeUnits changed)
 {
   s_current_time.hours = tick_time->tm_hour;
   s_current_time.hours -= (s_current_time.hours > 12) ? 12 : 0;
   s_current_time.minutes = tick_time->tm_min;
   s_current_time.seconds = tick_time->tm_sec;
   s_current_time.day = tick_time->tm_mday;
+
+  if (settings.KEY_RANDOM_COLOR == 2)
+  {
+    if (prev_hours != tick_time->tm_min)
+    {
+      update_random_ring_color(true);
+    }
+  }
+  else if (settings.KEY_RANDOM_COLOR == 3)
+  {
+    if (prev_hours != tick_time->tm_hour)
+    {
+      update_random_ring_color(true);
+    }
+  }
+
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -104,7 +186,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   GRect bounds = layer_get_unobstructed_bounds(layer);
   s_center = grect_center_point(&bounds);
 
-  //default hand colors (overridden by white background)
+  // default hand colors (overridden by white background)
   GColor hand_gcolor = GColorWhite;
   GColor hourdot_gcolor = GColorBlack;
 
@@ -125,9 +207,12 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   // Draw colored ring
   // determined colors for ring based on color screen and settings
-  if(COLORS){
+  if (COLORS)
+  {
     graphics_context_set_stroke_color(ctx, settings.KEY_RING_COLOR);
-  } else {
+  }
+  else
+  {
     graphics_context_set_stroke_color(ctx, hand_gcolor);
   }
   graphics_context_set_stroke_width(ctx, color_circle_thickness);
@@ -214,7 +299,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   // draw second hand
   if (settings.KEY_SECONDS)
   {
-    //determines colors for second hand and second hand circles based on color screen.
+    // determines colors for second hand and second hand circles based on color screen.
     if COLORS
     {
       graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
@@ -246,16 +331,26 @@ static void update_proc(Layer *layer, GContext *ctx)
   }
   else
   {
-    graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR); //prev black
+    graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR); // prev black
   }
   graphics_fill_circle(ctx, s_center, center_inner_circle_radius);
 
+  // draw hour hand circle
   GPoint hour_circle = {
       .x = (int16_t)(sin_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
       .y = (int16_t)(-cos_lookup(hour_angle) * (s_hour_length - hour_hand_circle_radius) / TRIG_MAX_RATIO) + s_center.y};
 
   if (color_circle_radius > 2 * center_outer_circle_radius)
   {
+    if (battery_status == BATTERY_STATE_LOW || battery_status == BATTERY_STATE_LOW_CHARGING)
+    {
+      hand_gcolor = GColorRed;
+    }
+    else if (battery_status == BATTERY_STATE_CHARGING)
+    {
+      hand_gcolor = GColorGreen;
+    }
+
     graphics_context_set_fill_color(ctx, hourdot_gcolor);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
   }
@@ -313,6 +408,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
   if (second_hand_t)
   {
     settings.KEY_SECONDS = second_hand_t->value->int32 == 1;
+    update_tick_subscription();
   }
 
   // Date
@@ -321,6 +417,26 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
   {
     settings.KEY_DATE = date_t->value->int32 == 1;
   }
+
+  // Random Color
+  Tuple *random_color_t = dict_find(iter, MESSAGE_KEY_KEY_RANDOM_COLOR);
+  if (random_color_t)
+  {
+    if (random_color_t->type == TUPLE_CSTRING)
+    {
+      settings.KEY_RANDOM_COLOR = atoi(random_color_t->value->cstring);
+    }
+    else
+    {
+      settings.KEY_RANDOM_COLOR = random_color_t->value->int32;
+    }
+  }
+
+  if (settings.KEY_RANDOM_COLOR == 2 || settings.KEY_RANDOM_COLOR == 3)
+  {
+    update_random_ring_color(true);
+  }
+
   clay_save_settings();
 
   layer_mark_dirty(s_canvas_layer);
@@ -449,9 +565,11 @@ static void init()
   // Set initial time
   time_t t = time(NULL);
   struct tm *time_now = localtime(&t);
+  prev_hours = (settings.KEY_RANDOM_COLOR == 2) ? time_now->tm_min : ((settings.KEY_RANDOM_COLOR == 3) ? time_now->tm_hour : -1);
+  ring_color = settings.KEY_RING_COLOR;
   tick_handler(time_now, MINUTE_UNIT);
 
-  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  update_tick_subscription();
 
   // Ring animation
   AnimationImplementation radius_impl = {.update = radius_update};

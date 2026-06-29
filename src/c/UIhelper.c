@@ -27,6 +27,9 @@ void clay_default_settings() {
   settings.KEY_DATE = true;
   settings.KEY_BG_COLOR = GColorBlack;
   settings.KEY_SECOND_COLOR = GColorRed;
+  settings.KEY_RANDOM_COLOR = 1;
+  settings.KEY_HOUR_DOTS = false;
+  settings.KEY_MIN_DOTS = false;
 }
 
 // Read settings from persistent storage

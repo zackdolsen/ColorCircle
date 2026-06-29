@@ -8,6 +8,9 @@ typedef struct ClaySettings {
   GColor KEY_RING_COLOR;
   bool KEY_DATE;
   bool KEY_SECONDS;
+  int KEY_RANDOM_COLOR;
+  bool KEY_HOUR_DOTS;
+  bool KEY_MIN_DOTS;
 } ClaySettings;
 
 typedef struct {
@@ -33,12 +36,25 @@ typedef enum {
   SCREEN_TYPE_ROUND_V2
 } ScreenType;
 
+typedef enum {
+  BATTERY_STATE_NORMAL,
+  BATTERY_STATE_CHARGING,
+  BATTERY_STATE_LOW,
+  BATTERY_STATE_LOW_CHARGING
+} BatteryStatus;
+
+extern BatteryStatus battery_status;
+extern bool bluetooth_connected;
+
 void clay_default_settings(); 
 void clay_load_settings();
 void clay_save_settings();
 
 ScreenType get_watch_type(void);
 void watch_type_init(void);
+void update_random_ring_color(bool force);
+void update_tick_subscription(void);
+void tick_handler(struct tm *tick_time, TimeUnits changed);
 
 static inline int get_font_pixel_height(GFont font, const char *test_str)
 {

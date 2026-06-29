@@ -19,7 +19,10 @@
             "KEY_DATE",
             "KEY_SECONDS",
             "KEY_SECOND_COLOR",
-            "KEY_BG_COLOR"
+            "KEY_BG_COLOR",
+            "KEY_RANDOM_COLOR",
+            "KEY_HOUR_DOTS",
+            "KEY_MIN_DOTS"
         ],
         "projectType": "native",
         "resources": {
