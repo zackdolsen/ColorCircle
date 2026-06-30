@@ -67,7 +67,7 @@ static int s_x_text_offset; // offset for text to center it in the circle
 
 // Battery and bluetooth status
 static bool battery_charging = false;
-static int battery_percent = 20;
+static int battery_percent = 100;
 static bool bluetooth_connected;
 
 /*********** ANIMATION HANDLERS ***********/
@@ -167,6 +167,12 @@ static void handle_battery(BatteryChargeState charge_state)
   layer_mark_dirty(s_canvas_layer);
 }
 
+static void handle_bluetooth(bool connected) {
+  bluetooth_connected = connected;
+  APP_LOG(APP_LOG_LEVEL_INFO, "Bluetooth status: connected=%s", connected ? "true" : "false");
+  layer_mark_dirty(s_canvas_layer);
+}
+
 /************* TIME & HANDS *************/
 void tick_handler(struct tm *tick_time, TimeUnits changed)
 {
@@ -233,6 +239,8 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_context_set_stroke_width(ctx, color_circle_thickness);
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
+  
+    
 
   // Draw minute dots
   if (settings.KEY_MIN_DOTS)
@@ -371,13 +379,19 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   // draw inner center circle
   if (settings.KEY_SECONDS && COLORS)
-  {
-    graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
+  { 
+      graphics_context_set_fill_color(ctx, settings.KEY_SECOND_COLOR);
+    
   }
   else
   {
     graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR); // prev black
   }
+  //bluetooth signal indicator
+  if(!bluetooth_connected){
+      
+    graphics_context_set_fill_color(ctx, GColorLightGray);
+    } 
   graphics_fill_circle(ctx, s_center, center_inner_circle_radius);
 
   // draw hour hand circle
@@ -387,17 +401,16 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   if (color_circle_radius > 2 * center_outer_circle_radius)
   {
-
-    // //battery percent color change - not working
-    // if (battery_percent <= 20)
-    // {
-    //   hand_gcolor = GColorRed;
-    // }
-    // else if (battery_charging)
-    // {
-    //   hand_gcolor = GColorGreen;
-    // }
-
+     if (battery_percent <= 20 && COLORS)
+    {
+      hourdot_gcolor = GColorRed;
+      APP_LOG(APP_LOG_LEVEL_INFO, "Should be red");
+    }
+    else if (battery_charging && COLORS)
+    {
+      hourdot_gcolor = GColorMalachite;
+      APP_LOG(APP_LOG_LEVEL_INFO, "Should be green");
+    } 
     graphics_context_set_fill_color(ctx, hourdot_gcolor);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
   }
@@ -419,12 +432,18 @@ static void window_load(Window *window)
   layer_add_child(window_layer, s_canvas_layer);
 
   battery_state_service_subscribe(handle_battery);
+  
+  connection_service_subscribe((ConnectionHandlers) {
+    .pebble_app_connection_handler = handle_bluetooth
+  });
+  
   handle_battery(battery_state_service_peek());
 }
 
 static void window_unload(Window *window)
 {
   battery_state_service_unsubscribe();
+  connection_service_unsubscribe();
   layer_destroy(s_canvas_layer);
 }
 
