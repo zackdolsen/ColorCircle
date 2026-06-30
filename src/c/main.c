@@ -65,7 +65,10 @@ static int s_date_text_width;
 static int s_y_text_offset; // offset for text to center it in the circle
 static int s_x_text_offset; // offset for text to center it in the circle
 
-//
+// Battery and bluetooth status
+static bool battery_charging = false;
+static int battery_percent = 20;
+static bool bluetooth_connected;
 
 /*********** ANIMATION HANDLERS ***********/
 static void animation_started(Animation *anim, void *context)
@@ -154,6 +157,16 @@ void update_tick_subscription(void)
   tick_timer_service_subscribe(settings.KEY_SECONDS ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
 }
 
+static void handle_battery(BatteryChargeState charge_state)
+{
+  battery_charging = charge_state.is_charging;
+  battery_percent = charge_state.charge_percent;
+
+  APP_LOG(APP_LOG_LEVEL_INFO, "Battery status: charging=%s, percent=%d", battery_charging ? "true" : "false", battery_percent);
+
+  layer_mark_dirty(s_canvas_layer);
+}
+
 /************* TIME & HANDS *************/
 void tick_handler(struct tm *tick_time, TimeUnits changed)
 {
@@ -221,8 +234,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   graphics_context_set_antialiased(ctx, ANTIALIASING);
   graphics_draw_circle(ctx, s_center, color_circle_radius);
 
-
-  //Draw minute dots
+  // Draw minute dots
   if (settings.KEY_MIN_DOTS)
   {
     for (int i = 0; i < 60; i++)
@@ -230,14 +242,14 @@ static void update_proc(Layer *layer, GContext *ctx)
       int32_t minute_angle = (int32_t)(TRIG_MAX_ANGLE * i / 60.0f);
       GPoint minute_dot = {
           .x = (int16_t)(sin_lookup(minute_angle) * (color_circle_radius) / TRIG_MAX_RATIO) + s_center.x,
-          .y = (int16_t)(-cos_lookup(minute_angle) * (color_circle_radius ) / TRIG_MAX_RATIO) + s_center.y};
+          .y = (int16_t)(-cos_lookup(minute_angle) * (color_circle_radius) / TRIG_MAX_RATIO) + s_center.y};
 
       graphics_context_set_fill_color(ctx, hourdot_gcolor);
       graphics_fill_circle(ctx, minute_dot, 1);
     }
   }
 
-  //Draw hour dots
+  // Draw hour dots
   if (settings.KEY_HOUR_DOTS)
   {
     for (int i = 0; i < 12; i++)
@@ -375,14 +387,16 @@ static void update_proc(Layer *layer, GContext *ctx)
 
   if (color_circle_radius > 2 * center_outer_circle_radius)
   {
-    if (battery_status == BATTERY_STATE_LOW || battery_status == BATTERY_STATE_LOW_CHARGING)
-    {
-      hand_gcolor = GColorRed;
-    }
-    else if (battery_status == BATTERY_STATE_CHARGING)
-    {
-      hand_gcolor = GColorGreen;
-    }
+
+    // //battery percent color change - not working
+    // if (battery_percent <= 20)
+    // {
+    //   hand_gcolor = GColorRed;
+    // }
+    // else if (battery_charging)
+    // {
+    //   hand_gcolor = GColorGreen;
+    // }
 
     graphics_context_set_fill_color(ctx, hourdot_gcolor);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
@@ -400,15 +414,17 @@ static void window_load(Window *window)
   // GRect bounds = layer_get_bounds(window_layer);
   GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
-  // s_center = grect_center_point(&bounds);
-
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, update_proc);
   layer_add_child(window_layer, s_canvas_layer);
+
+  battery_state_service_subscribe(handle_battery);
+  handle_battery(battery_state_service_peek());
 }
 
 static void window_unload(Window *window)
 {
+  battery_state_service_unsubscribe();
   layer_destroy(s_canvas_layer);
 }
 
@@ -470,7 +486,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context)
   if (hour_dots_t)
   {
     settings.KEY_HOUR_DOTS = hour_dots_t->value->int32 == 1;
-  } 
+  }
 
   // Minute Dots
   Tuple *min_dots_t = dict_find(iter, MESSAGE_KEY_KEY_MIN_DOTS);

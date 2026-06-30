@@ -37,15 +37,6 @@ typedef enum {
   SCREEN_TYPE_ROUND_V2
 } ScreenType;
 
-typedef enum {
-  BATTERY_STATE_NORMAL,
-  BATTERY_STATE_CHARGING,
-  BATTERY_STATE_LOW,
-  BATTERY_STATE_LOW_CHARGING
-} BatteryStatus;
-
-extern BatteryStatus battery_status;
-extern bool bluetooth_connected;
 
 void clay_default_settings(); 
 void clay_load_settings();
