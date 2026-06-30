@@ -404,12 +404,12 @@ static void update_proc(Layer *layer, GContext *ctx)
      if (battery_percent <= 20 && COLORS)
     {
       hourdot_gcolor = GColorRed;
-      APP_LOG(APP_LOG_LEVEL_INFO, "Should be red");
+      // APP_LOG(APP_LOG_LEVEL_INFO, "Should be red");
     }
     else if (battery_charging && COLORS)
     {
       hourdot_gcolor = GColorMalachite;
-      APP_LOG(APP_LOG_LEVEL_INFO, "Should be green");
+      // APP_LOG(APP_LOG_LEVEL_INFO, "Should be green");
     } 
     graphics_context_set_fill_color(ctx, hourdot_gcolor);
     graphics_fill_circle(ctx, hour_circle, hour_hand_circle_radius);
@@ -438,6 +438,7 @@ static void window_load(Window *window)
   });
   
   handle_battery(battery_state_service_peek());
+  handle_bluetooth(connection_service_peek_pebble_app_connection());
 }
 
 static void window_unload(Window *window)
