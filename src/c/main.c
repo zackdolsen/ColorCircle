@@ -291,6 +291,7 @@ static void update_proc(Layer *layer, GContext *ctx)
     // Prepare day string
     char day_str[4];
     snprintf(day_str, sizeof(day_str), "%d", s_current_time.day);
+    // s_date_text_width = get_font_pixel_width(s_gfont_date, day_str);
 
     // Position inside the circle, on the right, relative to current ring radius
     int16_t x_offset = (FINAL_RADIUS + color_circle_thickness / 2) / 2; // halfway to the edge of the ring;
@@ -385,7 +386,7 @@ static void update_proc(Layer *layer, GContext *ctx)
   }
   else
   {
-    graphics_context_set_fill_color(ctx, settings.KEY_BG_COLOR); // prev black
+    graphics_context_set_fill_color(ctx, hourdot_gcolor); // prev black
   }
   //bluetooth signal indicator
   if(!bluetooth_connected){
@@ -632,7 +633,7 @@ static void init()
   else
   {
     s_gfont_date = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-    s_y_text_offset = 5;
+    s_y_text_offset = 4;
     s_x_text_offset = -1;
   }
 

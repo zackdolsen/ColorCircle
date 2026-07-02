@@ -85,7 +85,7 @@ static inline int get_font_pixel_width(GFont font, const char *test_str)
       GTextOverflowModeWordWrap,
       GTextAlignmentLeft);
 
-  APP_LOG(APP_LOG_LEVEL_INFO, "Font width: %d px for string: %s", size.h, test_str);
+  APP_LOG(APP_LOG_LEVEL_INFO, "Font width: %d px for string: '%s'", size.h, test_str);
 
   return size.w;
 }
