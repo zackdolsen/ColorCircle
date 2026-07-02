@@ -1,0 +1,106 @@
+'use strict';
+
+/* eslint-disable quotes */
+
+module.exports = [
+  {
+    "type": "heading",
+    "defaultValue": "Color Circle Settings"
+  },
+  {
+    "type": "text",
+    "defaultValue": "These are the current settings for version 3.0"
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Watchface Colors"
+      },
+      {
+        "type": "color",
+        "messageKey": "KEY_RING_COLOR",      // Matches your C code
+        "defaultValue": "0x00FFAA",        // Pebble color name
+        "label": "Ring Color",
+        "sunlight": false,
+        "capabilities": ["COLOR"]
+
+      },
+      {
+        "type": "color",
+        "messageKey": "KEY_BG_COLOR",      // Matches your C code
+        "defaultValue": "0x000000",        // Pebble color name
+        "label": "Background Color",
+        "sunlight": false
+      },
+      {
+        "type": "color",
+        "messageKey": "KEY_SECOND_COLOR",      // Matches your C code
+        "defaultValue": "0xFF0000",        // Pebble color name
+        "label": "Seconds Hand Color",
+        "sunlight": false,
+        "capabilities": ["COLOR"]
+      },
+      {
+        "type": "radiogroup",
+        "messageKey": "KEY_RANDOM_COLOR",
+        "label": "Random Ring Color",
+        "capabilities": ["COLOR"],
+        "defaultValue": "1",
+        "options": [
+          {
+            "label": "Off",
+            "value": "1"
+          },
+          {
+            "label": "Every Minute",
+            "value": "2"
+          },
+          {
+            "label": "Every Hour",
+            "value": "3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Watchface Settings"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_SECONDS",      // Matches your C code
+        "defaultValue": true,        // Pebble color name
+        "label": "Show Seconds",
+        "description": "Turning on may lead to decreased battery life"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_DATE",      // Matches your C code
+        "defaultValue": true,        // Pebble color name
+        "label": "Show Date"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_HOUR_DOTS",
+        "defaultValue": false,
+        "label": "Show Hour Dots"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "KEY_MIN_DOTS",
+        "defaultValue": false,
+        "label": "Show Minute Dots"
+      }
+    ]
+  },
+  {
+    "type": "submit",
+    "defaultValue": "Save"
+  }
+];

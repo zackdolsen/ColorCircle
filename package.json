@@ -1,35 +1,70 @@
 {
-  "name": "ColorCircle",
-  "author": "MakeAwesomeHappen",
-  "version": "1.0.0",
-  "keywords": [
-    "pebble-app"
-  ],
-  "dependencies": {
-    "pebble-clay": "^1.0.4"
-  },
-  "pebble": {
-    "displayName": "ColorCircle",
-    "uuid": "be960a4a-3fff-4e31-8285-87432bb8e92a",
-    "enableMultiJS": true,
-    "sdkVersion": "3",
-    "targetPlatforms": [
-      "basalt",
-      "chalk",
-      "emery"
-    ],
-    "watchapp": {
-      "watchface": true
+    "author": "zman441",
+    "dependencies": {
+        "@rebble/clay": "^1.0.8"
     },
-    "capabilities": [
-      "configurable"
+    "keywords": [
+        "pebble-app"
     ],
-    "messageKeys": {
-      "KEY_INVERT": 0,
-      "KEY_COLOR": 1
+    "name": "colorcircle",
+    "pebble": {
+        "capabilities": [
+            "configurable"
+        ],
+        "displayName": "Color Circle",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "KEY_INVERT",
+            "KEY_RING_COLOR",
+            "KEY_DATE",
+            "KEY_SECONDS",
+            "KEY_SECOND_COLOR",
+            "KEY_BG_COLOR",
+            "KEY_RANDOM_COLOR",
+            "KEY_HOUR_DOTS",
+            "KEY_MIN_DOTS"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "type": "png",
+                    "name": "MENU_ICON",
+                    "file": "images/MenuIcon.png",
+                    "menuIcon": true,
+                    "targetPlatforms": [
+                        "basalt",
+                        "chalk",
+                        "emery",
+                        "gabbro"
+                    ]
+                },
+                {
+                    "type": "png",
+                    "name": "MENU_ICON",
+                    "file": "images/MenuIconBW.png",
+                    "targetPlatforms": [
+                        "aplite",
+                        "diorite",
+                        "flint"
+                    ]
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery",
+            "gabbro",
+            "flint"
+        ],
+        "uuid": "6a7e6629-4836-43b9-984e-ee4866748b03",
+        "watchapp": {
+            "watchface": true
+        }
     },
-    "resources": {
-      "media": []
-    }
-  }
+    "version": "3.0.0"
 }
